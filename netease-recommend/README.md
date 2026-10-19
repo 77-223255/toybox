@@ -47,20 +47,20 @@ English: [`README.en.md`](./README.en.md)
 ## 安装
 
 ```bash
-git clone https://github.com/77-223255/toolist.git
+git clone https://github.com/77-223255/toybox.git
 ```
 
 然后把工具目录链进 agent 的 skills 目录（用软链，`git pull` 即可自动更新）：
 
 ```bash
 # pi
-ln -s "$PWD/toolist/netease-recommend" ~/.pi/agent/skills/netease-recommend
+ln -s "$PWD/toybox/netease-recommend" ~/.pi/agent/skills/netease-recommend
 
 # Claude Code
-ln -s "$PWD/toolist/netease-recommend" ~/.claude/skills/netease-recommend
+ln -s "$PWD/toybox/netease-recommend" ~/.claude/skills/netease-recommend
 
 # 通用 Agent Skills 位置
-ln -s "$PWD/toolist/netease-recommend" ~/.agents/skills/netease-recommend
+ln -s "$PWD/toybox/netease-recommend" ~/.agents/skills/netease-recommend
 ```
 
 ## 认证

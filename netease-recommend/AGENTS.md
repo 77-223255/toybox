@@ -51,8 +51,8 @@ No other runtime is required. `mpv`, `yt-dlp`, downloaders: **not used** — thi
 Install by **symlink**, so `git pull` propagates updates:
 
 ```bash
-git clone https://github.com/77-223255/toolist.git
-ln -s "$PWD/toolist/netease-recommend" ~/.pi/agent/skills/netease-recommend
+git clone https://github.com/77-223255/toybox.git
+ln -s "$PWD/toybox/netease-recommend" ~/.pi/agent/skills/netease-recommend
 ```
 
 Skills directory by client:
@@ -267,8 +267,8 @@ Notes that save time:
 **安装** ——
 
 ```bash
-git clone https://github.com/77-223255/toolist.git
-ln -s "$PWD/toolist/netease-recommend" ~/.pi/agent/skills/netease-recommend
+git clone https://github.com/77-223255/toybox.git
+ln -s "$PWD/toybox/netease-recommend" ~/.pi/agent/skills/netease-recommend
 ```
 
 **认证** —— 读 `~/.config/neteasecli/profiles/default/session.json` 里的 `MUSIC_U`。

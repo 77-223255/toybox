@@ -47,20 +47,20 @@ A typical library yields ~1500 liked tracks, 70 followed artists, 445 saved albu
 ## Install
 
 ```bash
-git clone https://github.com/77-223255/toolist.git
+git clone https://github.com/77-223255/toybox.git
 ```
 
 Then symlink the tool directory into your agent's skills directory, so `git pull` keeps it current:
 
 ```bash
 # pi
-ln -s "$PWD/toolist/netease-recommend" ~/.pi/agent/skills/netease-recommend
+ln -s "$PWD/toybox/netease-recommend" ~/.pi/agent/skills/netease-recommend
 
 # Claude Code
-ln -s "$PWD/toolist/netease-recommend" ~/.claude/skills/netease-recommend
+ln -s "$PWD/toybox/netease-recommend" ~/.claude/skills/netease-recommend
 
 # generic Agent Skills location
-ln -s "$PWD/toolist/netease-recommend" ~/.agents/skills/netease-recommend
+ln -s "$PWD/toybox/netease-recommend" ~/.agents/skills/netease-recommend
 ```
 
 ## Authentication
