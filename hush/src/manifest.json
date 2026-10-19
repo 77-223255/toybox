@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "Hush",
+  "version": "5.3.0",
+  "description": "Hush — quiet the noise: declutter the Netease Music WebPlayer with an Apple Music dark theme, hide the X (Twitter) \"For you\" tab and block X during 9am–9pm, give Hacker News a dark theme with larger type, and give Codeforces a warm retro dark theme.",
+  "permissions": ["activeTab", "storage"],
+  "content_scripts": [
+    {
+      "matches": ["*://music.163.com/*"],
+      "js": ["netease.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["*://x.com/*", "*://twitter.com/*"],
+      "js": ["x.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["*://news.ycombinator.com/*"],
+      "js": ["hn.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["*://codeforces.com/*", "*://*.codeforces.com/*"],
+      "js": ["codeforces.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icons/icon48.png"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

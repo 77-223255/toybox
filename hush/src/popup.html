@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hush</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* 垂直堆叠的磁贴：以后加站点就往 body 里追加一个 .tile，
+       popup 高度会自动长高，不需要改样式。
+       磁贴之间 gap 里透出 body 底色 —— 就是那条 1px 细线。 */
+    html,
+    body {
+      width: 200px;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      background: #3a3a3a;
+      overflow: hidden;
+    }
+
+    .tile {
+      -webkit-appearance: none;
+      appearance: none;
+      flex: 0 0 64px;
+      width: 100%;
+      height: 64px;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      outline: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.25s ease, filter 0.2s ease;
+    }
+
+    .tile svg {
+      width: 30px;
+      height: 30px;
+      display: block;
+      transition: transform 0.2s ease;
+    }
+
+    .tile:hover {
+      filter: brightness(1.12);
+    }
+
+    .tile:hover svg {
+      transform: scale(1.1);
+    }
+
+    .tile:active {
+      filter: brightness(0.92);
+    }
+
+    .tile:active svg {
+      transform: scale(0.9);
+    }
+
+    /* 网易云：Apple Music 红 */
+    #neteaseBtn.on {
+      background: #fa2d48;
+    }
+    #neteaseBtn.on svg {
+      fill: #ffffff;
+    }
+    #neteaseBtn.off {
+      background: #1b1b1b;
+    }
+    #neteaseBtn.off svg {
+      fill: rgba(255, 255, 255, 0.42);
+    }
+    #neteaseBtn.off:hover {
+      background: #232323;
+    }
+
+    /* X：品牌蓝 */
+    #xBtn.on {
+      background: #1d9bf0;
+    }
+    #xBtn.on svg {
+      fill: #ffffff;
+    }
+    #xBtn.off {
+      background: #1b1b1b;
+    }
+    #xBtn.off svg {
+      fill: rgba(255, 255, 255, 0.42);
+    }
+    #xBtn.off:hover {
+      background: #232323;
+    }
+
+    /* Hacker News：品牌橙 */
+    #hnBtn.on {
+      background: #ff6600;
+    }
+    #hnBtn.on svg {
+      fill: #ffffff;
+    }
+    #hnBtn.off {
+      background: #1b1b1b;
+    }
+    #hnBtn.off svg {
+      fill: rgba(255, 255, 255, 0.42);
+    }
+    #hnBtn.off:hover {
+      background: #232323;
+    }
+
+    /* Codeforces：复古黄铜金 */
+    #cfBtn.on {
+      background: #c9973a;
+    }
+    #cfBtn.on svg {
+      fill: #ffffff;
+    }
+    #cfBtn.off {
+      background: #1b1b1b;
+    }
+    #cfBtn.off svg {
+      fill: rgba(255, 255, 255, 0.42);
+    }
+    #cfBtn.off:hover {
+      background: #232323;
+    }
+
+  </style>
+</head>
+<body>
+  <button class="tile on" id="neteaseBtn" title="网易云音乐：隐藏侧栏 + Hacker News 黑橙主题">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+    </svg>
+  </button>
+  <button class="tile on" id="xBtn" title="X：隐藏「为你推荐 / For you」标签 + 白天 9:00–21:00 封锁">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+    </svg>
+  </button>
+  <button class="tile on" id="hnBtn" title="Hacker News：深色主题 + 调大字号">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 3h5l3 5.5L15 3h5l-6 8.5V21h-4v-9.5z"/>
+    </svg>
+  </button>
+  <button class="tile on" id="cfBtn" title="Codeforces：复古暖色深色主题">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M9.4 16.6 4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0 4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/>
+    </svg>
+  </button>
+  <script src="popup.js"></script>
+</body>
+</html>
