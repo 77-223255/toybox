@@ -113,4 +113,4 @@ Chowning 于 1973 年把这项技术授权给 Yamaha；1983 年 Yamaha 推出 DX
 
 ## License
 
-MIT
+未声明。
