@@ -77,4 +77,4 @@ python avatar_generator.py
 
 ## License
 
-未声明。
+MIT —— 见仓库根目录 [`LICENSE`](../LICENSE)。

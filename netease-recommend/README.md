@@ -123,4 +123,4 @@ node apply.mjs --name "歌单标题" --file selection.json
 
 ## License
 
-MIT
+MIT —— 见仓库根目录 [`LICENSE`](../LICENSE)。

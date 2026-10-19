@@ -123,4 +123,4 @@ The playlist is tracked by ID, never by name — renaming it does not create a n
 
 ## License
 
-MIT
+MIT — see [`LICENSE`](../LICENSE) at the repository root.

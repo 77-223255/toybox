@@ -78,4 +78,4 @@ Archived code — noting these so nobody rediscovers them the hard way:
 
 ## License
 
-Not declared.
+MIT — see [`LICENSE`](../LICENSE) at the repository root.
