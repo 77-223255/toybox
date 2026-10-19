@@ -1,5 +1,8 @@
 # avatar_generator
 
+> 🧸 **old toy** —— 早年的小玩具，**不再维护**，留作存档。
+> Archived toy. Not maintained.
+
 基于 Python 的抽象头像生成器，通过递归矩形分割算法将画布划分为多个区域，并使用 matplotlib 色图着色输出。
 
 ## 核心功能
@@ -33,4 +36,9 @@ python avatar_generator.py
 ```
 
 在 GUI 中选择算法、分割次数、色图，点击生成后导出。
+
+## 仓库贡献
+
+- 这是存档项目，**不打算继续维护**。
+- 若真要改动：保持单文件结构，Commit message 用英文 conventional 风格（`feat:` / `fix:` / `docs:`），与仓库历史一致。
 
