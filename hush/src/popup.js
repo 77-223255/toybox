@@ -1,21 +1,18 @@
 // Hush — Popup Script
 //
-// 四个无文字磁贴，撑满 popup、中间 1px 细线分割，靠颜色区分功能：
-//   红色 = 网易云音乐（隐藏侧栏 + Apple Music 深色主题）
+// 三个无文字磁贴，撑满 popup、中间 1px 细线分割，靠颜色区分功能：
+//   红色 = 网易云音乐（隐藏侧栏 + Apple Music 深色主题 + 方向键控制播放）
 //   蓝色 = X（隐藏「为你推荐」+ 白天 9:00–21:00 封锁）
 //   橙色 = Hacker News（深色主题 + 调大字号）
-//   金色 = Codeforces（复古暖色深色主题）
-// 四个开关各自独立存储，互不影响。
+// 三个开关各自独立存储，互不影响。
 
 const NETEASE_KEY = 'netease-hider-enabled';
 const X_KEY = 'x-hider-enabled';
 const HN_KEY = 'hn-hider-enabled';
-const CF_KEY = 'cf-hider-enabled';
 
 const neteaseBtn = document.getElementById('neteaseBtn');
 const xBtn = document.getElementById('xBtn');
 const hnBtn = document.getElementById('hnBtn');
-const cfBtn = document.getElementById('cfBtn');
 
 function getConfig(key) {
   return new Promise((resolve) => {
@@ -83,21 +80,8 @@ async function initHn() {
   });
 }
 
-async function initCf() {
-  let enabled = (await getConfig(CF_KEY)).enabled;
-  updateUI(cfBtn, enabled);
-
-  cfBtn.addEventListener('click', async () => {
-    enabled = !enabled;
-    await saveConfig(CF_KEY, { enabled });
-    await sendToActiveTab(['codeforces.com'], { action: 'updateCfConfig', enabled });
-    updateUI(cfBtn, enabled);
-  });
-}
-
 document.addEventListener('DOMContentLoaded', () => {
   initNetease();
   initX();
   initHn();
-  initCf();
 });

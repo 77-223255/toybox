@@ -2,21 +2,20 @@
 
 ## 背景
 
-这是一个仅个人使用的 Chrome 扩展（Manifest V3），目前管四个互不相干的站点，
-靠 popup 里四个不同颜色的磁贴分别开关：
+这是一个仅个人使用的 Chrome 扩展（Manifest V3），目前管三个互不相干的站点，
+靠 popup 里三个不同颜色的磁贴分别开关：
 
 1. **网易云音乐** Linux WebPlayer（`https://music.163.com/st/webplayer`）：
-   隐藏部分 UI + **Apple Music 深色主题** + 全屏播放页精简，逻辑全在 `src/netease.js`。
+   隐藏部分 UI + **Apple Music 深色主题** + 全屏播放页精简 + **方向键控制播放**，
+   逻辑全在 `src/netease.js`。
 2. **X / Twitter**（`x.com` / `twitter.com`）：隐藏首页「为你推荐 / For you」标签，
    并在**本地时间 09:00–21:00** 之间「白昼封锁」——整页清空、全屏只留标语，逻辑全在 `src/x.js`。
 3. **Hacker News**（`news.ycombinator.com`）：深色主题 + 整体调大字号（含评论），
    保留品牌橙，逻辑全在 `src/hn.js`。
-4. **Codeforces**（`codeforces.com`）：复古暖色深色主题，逻辑全在 `src/codeforces.js`。
 
-原来还有第 4 个磁贴（紫 = Computer Networks: A Systems Approach 7e 在线书的深色主题
-+ 可收起目录 + 中英对照），已经连同 `src/systemsapproach.js`、`src/i18n/` 一起**移出**
-本项目，去 `~/Projects/learn`（扩展名 Learn，紫色磁贴）里了；那边还多了
-K&R《C 程序设计语言》的本地阅读器。别把它加回来。
+原来还有第 4 个磁贴（金 = Codeforces 复古暖色深色主题），用户要求**去掉**，
+`src/codeforces.js`、manifest 条目、popup 金色磁贴与 `cf-hider-enabled` key 都已删；
+不要再加回来（用户还要用 Codeforces，只是不要这个主题了）。
 
 网易云网站是 React SPA，登录后才有完整侧边栏；
 **静态 curl / headless dump-dom 拿不到侧边栏 DOM**（未登录时只返回空壳），
@@ -26,17 +25,14 @@ K&R《C 程序设计语言》的本地阅读器。别把它加回来。
 
 ```
 src/                     扩展源码（chromium 打包目录）
-src/netease.js           网易云：注入 CSS 隐藏元素 + 切换站点深色主题（网易云逻辑全在此）
+src/netease.js           网易云：隐藏 / 换肤 / 全屏精简 / 方向键控制（网易云逻辑全在此）
 src/x.js                 X：隐藏「为你推荐 / For you」标签 + 白天 9:00–21:00 全屏封锁
 src/hn.js                Hacker News：注入深色主题 + 调大字号（保留品牌橙）
-src/codeforces.js        Codeforces：注入复古暖色深色主题（覆盖 CSS 变量 + 硬编码颜色）
-src/popup.html / popup.js  弹窗：上下四个无文字 ON/OFF 磁贴，撑满 popup、中间 1px 细线分割
-                         （红=网易云，蓝=X，橙=HN，金=Codeforces）；
-                         加站点就往 body 里追加一个 .tile
-src/manifest.json        MV3（version 5.3.0）；四个 content_scripts：
+src/popup.html / popup.js  弹窗：上下三个无文字 ON/OFF 磁贴，撑满 popup、中间 1px 细线分割
+                         （红=网易云，蓝=X，橙=HN）；加站点就往 body 里追加一个 .tile
+src/manifest.json        MV3（version 6.0.0）；三个 content_scripts：
                          music.163.com → netease.js，
-                         x.com / twitter.com → x.js，news.ycombinator.com → hn.js，
-                         codeforces.com（含子域）→ codeforces.js；
+                         x.com / twitter.com → x.js，news.ycombinator.com → hn.js；
                          无 web_accessible_resources（v5.0.0 已随 Systems Approach 移出而删掉）；
                          action 图标用 icons/icon48.png
 src/icons/*              图标（16/48/128 + svg）
@@ -203,38 +199,6 @@ rsvg-convert -w 128 -h 128 icon.svg -o icon128.png
 - 不单独加开关；`applyStyle()` 在 document_start 先挂（默认开启，避免闪白），init 读到关闭再 `removeStyle()`。
 - 不做内容隐藏，只改主题与字号 —— 与「Hush」在其它站点的“隐藏”不同，这是有意为之。
 
-## Codeforces 复古暖色深色主题（`src/codeforces.js`）
-
-- 站点：`*://codeforces.com/*`、`*://*.codeforces.com/*`（含 m1/m2/mirror 等镜像子域）；
-  存储 key = `cf-hider-enabled`；popup 金色按钮发消息 `{ action: 'updateCfConfig', enabled }`。
-- 配色思路：**复古老派的暖色深色** —— 深棕近黑的底 + 暖米白的字 + 琥珀/黄铜色的
-  链接与标题（`BG_*` / `TEXT_*` / `LINK_*` / `ACCENT*` 常量在文件顶部，改配色只动它们）。
-- 站点是服务端渲染的 jQuery 时代页面，颜色一半来自 `:root` 的 CSS 变量、一半硬编码。
-  做法分两层：
-  1. 覆写 `:root` 的 `--border-color` / `--notice-color` / `--muted-color` /
-     `--highlighted-blue-color` / `--highlighted-green-color` / `--success-color` /
-     `--warning-color` / `--error-color`，一次性带走所有引用变量的组件
-     （notice / text-label / datatable-filter / footer 分隔线…）；
-  2. 对硬编码颜色的组件逐条 `!important` 覆盖（`.roundbox` 白底、`.menu-list li a` 黑字、
-     `div.ttypography`、`.problem-statement` 样例、`.datatable`、`.topic` 等）。
-- **链接色故意不带 `!important`**（`a:link` / `a:visited` / `a:hover`）：段位色
-  `.rated-user.user-*` 是 `!important` 的，这样它们才能胜出、保留红/橙/紫/蓝/青/绿/灰。
-  站点里少数用 `!important` 写死的链接色（`.logo-href` / `.pagination a` / `.comments .title` /
-  `div.ttypography a` …）再逐条覆盖。**不要把通用链接规则改成 `!important`**，否则段位色全毁。
-- 段位里黑底上看不见的黑字单独改暖色：`.user-black` → 暖灰、`.user-admin` / `.user-4000` →
-  暖米白、legendary 首字母 → 暖米白；顺带把偏暗的 `user-blue` / `user-green` 提亮。
-- `.roundbox` 与 `.datatable` 的浅色 PNG 圆角贴图（`roundbox-lt/rt/lb/rb`、`datatable .lt/.rt/…`）
-  在深色下很突兀，直接 `display:none`，圆角交给站点已有的 `border-radius`。
-- 代码语法高亮（prettify：`.prettyprint` / `.lstlisting` 的 `.str` / `.kwd` / `.com` …）
-  原本是浅底配色，全部换成暖色系（琥珀关键字、橄榄字符串、暗金注释）。
-- `html { color-scheme: dark }` 让原生滚动条 / 表单控件跟着变深色；
-  品牌 logo 是深蓝 PNG，加了 `#header img[alt="Codeforces"] { filter: brightness(1.4) }` 提亮。
-- 与 HN 一样：不单独加开关，`applyStyle()` 在 document_start 先挂（默认开启，避免闪白），
-  init 读到关闭再 `removeStyle()`；只改主题，不做内容隐藏。
-
-（原第 4 个磁贴 Systems Approach 在线书的整套逻辑已迁到 `~/Projects/learn`，
-那边的深色主题改成了暖色系，并额外带了 K&R 本地阅读器。）
-
 ## 网易云：JS 侧改动（改名 / 文字隐藏 / 全屏封面）
 
 `SIDEBAR_CSS` 只能“隐藏/换肤”，改不了文字，所以下面几件在 JS 里做，统一挂在一个
@@ -302,6 +266,25 @@ rsvg-convert -w 128 -h 128 icon.svg -o icon128.png
   `pointer-events:all`，隐藏时须对 `.page-header *` 一并 `pointer-events:none`，否则仍可点到。
 - 开关关掉时 `stopVinylBarWatcher()` / `stopVinylObserver()` 移除监听与三个 class。
 
+## 网易云：键盘控制（`src/netease.js`）
+
+- 快捷键：**↓ 播放 / 暂停**，**← 上一首**，**→ 下一首**（不处理带修饰键的方向键）。
+- 不用站点内部 store（content script 在隔离世界访问不到），而是**点站点自己的控制按钮**；
+  用的都是稳定标识，不是哈希类名：
+  - 播放/暂停：`button.play-pause-btn`（站点自己的 id 是 `#btn_pc_minibar_play`；
+    普通底栏与全屏底栏**共用同一个 id**，所以不能只用 `querySelector`）；
+  - 上一首 / 下一首：图标库类名 `.cmd-icon-pre` / `.cmd-icon-next`（取 `.closest('button')`）。
+- 两套底栏可能同时在 DOM 里（全屏时普通底栏被 CSS 隐藏但节点还在），
+  `pickPlayerButton()` 用 `getBoundingClientRect()` 过滤掉 `display:none` / 零尺寸的那套，
+  并按 `html.hush-vinyl-active` 优先选全屏底栏。**不看 opacity**：全屏底栏平时
+  `opacity:0` 隐藏（鼠标靠近底部才滑出），但方向键应该照样能用。
+- `keydown` 挂在 `window` 的**捕获阶段**并 `preventDefault + stopPropagation`，
+  避免站点自己的快捷键再执行一次；`e.repeat` 直接忽略（按住不放不连跳）。
+- 焦点在 `input / textarea / select / contenteditable` 里时**不劫持**方向键
+  （搜索框里方向键要能移动光标）。
+- 与网易云开关同一个开关：`enable()` 里 `startKeyboard()`，`disable()` 里 `stopKeyboard()`；
+  找不到控制按钮（没播歌 / 底栏没挂载）时什么都不做，也不 `preventDefault`。
+
 ## 插件失灵时的工作流
 
 网易云：
@@ -349,14 +332,14 @@ rm -f hush.zip && (cd src && zip -qr ../hush.zip .)
 ## 约束
 
 - 保持极简：popup 就是垂直堆叠的无文字 ON/OFF 磁贴，撑满整个 popup、相邻磁贴间 1px 细线分割，靠颜色区分功能；加新站点时追加一个 .tile 即可
-  （红=网易云，蓝=X，橙=HN，金=Codeforces），别加文字、别加复选框列表；按钮里的 SVG 图标只是标识，不算文字。
-- 状态存储：`chrome.storage.sync`，四个独立 key，格式都是 `{ enabled: true|false }`：
-  - 网易云：`netease-hider-enabled`（深色主题由同一个开关统一控制，不要单独加开关）；
+  （红=网易云，蓝=X，橙=HN），别加文字、别加复选框列表；按钮里的 SVG 图标只是标识，不算文字。
+- 状态存储：`chrome.storage.sync`，三个独立 key，格式都是 `{ enabled: true|false }`：
+  - 网易云：`netease-hider-enabled`（深色主题 + 全屏精简 + 方向键控制由同一个开关统一控制，
+    不要单独加开关）；
   - X：`x-hider-enabled`（「隐藏为你推荐」与「白天 9:00–21:00 封锁」共用它）；
-  - Hacker News：`hn-hider-enabled`；
-  - Codeforces：`cf-hider-enabled`。
-- 只管这四个站点：**不要再往这里加 Systems Approach 或任何在线书 / 阅读器功能**，那些在
+  - Hacker News：`hn-hider-enabled`。
+- 只管这三个站点：**不要再往这里加 Systems Approach 或任何在线书 / 阅读器功能**，那些在
   `~/Projects/learn`（Learn 扩展，扩展 ID 不同、存储 key 也不同）。
 - 不做自动跳转 / 模拟点击（用户明确不要，别加回来）。X 那边也只隐藏「为你推荐」标签，
-  不要自动切到「正在关注」。
+  不要自动切到「正在关注」。方向键控制是用户明确要的例外，但同样只点播放控制键，不做别的。
 - 不要用 TreeWalker 全页遍历文本节点（曾把页面卡死）。

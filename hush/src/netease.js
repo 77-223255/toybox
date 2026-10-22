@@ -1,6 +1,6 @@
 // Hush — Netease Content Script
 //
-// 由 popup 的单个 ON/OFF 开关统一控制，做四类事：
+// 由 popup 的单个 ON/OFF 开关统一控制，做五类事：
 //   1) 隐藏用不到的 UI（侧栏栏目 / logo / 右上角账户区 / 评论 / 收藏 / VIP）
 //   2) 换肤：站点自带 design token 主题系统（80 个 token，场景 dark 等）。
 //      页面加载前把 localStorage.currentTheme 设成 "dark"（无闪白），
@@ -8,6 +8,7 @@
 //      全屏页会在容器上重定义整套 token，故 albumTokenResetCss() 再写一份到容器上。
 //   3) 侧栏三个栏目改英文名、去图标（JS；SPA 重渲染后由 MutationObserver 重跑）
 //   4) 全屏播放页：只留居中的静止封面；背景用「当前封面模糊放大」（Apple Music 式）
+//   5) 键盘控制：↓ 播放 / 暂停，← 上一首，→ 下一首（底栏与全屏底栏通用）
 //
 // 约定：不动会随构建变化的哈希类名，只用稳定 ID / 未混淆语义类名 / 前缀属性选择器。
 
@@ -1181,6 +1182,87 @@ function stopVinylBarWatcher() {
   hideVinylBar();
 }
 
+// ─────────────────────────────────────────────────────────────
+// 键盘控制：↓ 播放 / 暂停，← 上一首，→ 下一首
+// 底栏与全屏（纯享）底栏各有一套控制键，用的都是稳定标识，不是哈希类名：
+//   播放/暂停：button.play-pause-btn（站点自己的 id 是 #btn_pc_minibar_play，两套底栏共用）
+//   上一首 / 下一首：图标库类名 .cmd-icon-pre / .cmd-icon-next
+// 全屏时普通底栏被 SIDEBAR_CSS 隐藏，按 getBoundingClientRect 选当前真正在页面上的那套；
+// 焦点在输入框 / 可编辑区域时不劫持方向键（搜索框里要能移动光标）。
+// ─────────────────────────────────────────────────────────────
+const PLAYER_KEYS = {
+  ArrowDown: 'playPause',
+  ArrowLeft: 'prev',
+  ArrowRight: 'next',
+};
+const PLAY_PAUSE_SELECTOR = 'button.play-pause-btn, [id="btn_pc_minibar_play"]';
+const PREV_SELECTOR = '[class*="DefaultBarWrapper"] .cmd-icon-pre, [class*="VinylPageBarWrapper"] .cmd-icon-pre';
+const NEXT_SELECTOR = '[class*="DefaultBarWrapper"] .cmd-icon-next, [class*="VinylPageBarWrapper"] .cmd-icon-next';
+
+let playerKeydownHandler = null;
+
+function isLaidOut(el) {
+  if (!el || !el.getBoundingClientRect) return false;
+  const rect = el.getBoundingClientRect();
+  if (rect.width < 2 || rect.height < 2) return false;
+  return getComputedStyle(el).visibility !== 'hidden';
+}
+
+// 全屏模式优先点全屏底栏，普通模式优先点底部播放栏；都没有就退回最后一个可见的。
+function pickPlayerButton(selector) {
+  const buttons = [];
+  document.querySelectorAll(selector).forEach((el) => {
+    const btn = el.closest('button') || el;
+    if (buttons.indexOf(btn) === -1 && isLaidOut(btn)) buttons.push(btn);
+  });
+  if (!buttons.length) return null;
+  const vinyl = document.documentElement.classList.contains('hush-vinyl-active');
+  const preferred = vinyl
+    ? buttons.find((btn) => btn.closest('[class*="VinylPageBarWrapper"]'))
+    : buttons.find((btn) => btn.closest('[class*="DefaultBarWrapper"]'));
+  return preferred || buttons[buttons.length - 1];
+}
+
+function triggerPlayerAction(action) {
+  let selector = NEXT_SELECTOR;
+  if (action === 'playPause') selector = PLAY_PAUSE_SELECTOR;
+  else if (action === 'prev') selector = PREV_SELECTOR;
+  const btn = pickPlayerButton(selector);
+  if (!btn) return false;
+  btn.click();
+  return true;
+}
+
+function isTypingTarget(el) {
+  if (!el || el.nodeType !== 1) return false;
+  if (el.isContentEditable) return true;
+  return !!el.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]');
+}
+
+function handlePlayerKeydown(e) {
+  if (e.defaultPrevented || e.isComposing || e.repeat) return;
+  if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+  const action = PLAYER_KEYS[e.key];
+  if (!action) return;
+  if (isTypingTarget(e.target) || isTypingTarget(document.activeElement)) return;
+  if (!triggerPlayerAction(action)) return;
+  e.preventDefault();
+  e.stopPropagation();
+}
+
+function startKeyboard() {
+  if (playerKeydownHandler) return;
+  playerKeydownHandler = handlePlayerKeydown;
+  // 捕获阶段：抢在站点自己的快捷键之前处理，避免同一个方向键被执行两次。
+  window.addEventListener('keydown', playerKeydownHandler, true);
+}
+
+function stopKeyboard() {
+  if (!playerKeydownHandler) return;
+  window.removeEventListener('keydown', playerKeydownHandler, true);
+  playerKeydownHandler = null;
+}
+
 function startRename() {
   if (renameObserver) return;
   renameItems();
@@ -1211,6 +1293,7 @@ function enable() {
   applyDarkTheme();
   startRename();
   startVinylBarWatcher();
+  startKeyboard();
   lsSet(MIRROR_KEY, '1');
 }
 
@@ -1219,6 +1302,7 @@ function disable() {
   applyLightTheme();
   stopRename();
   stopVinylBarWatcher();
+  stopKeyboard();
   clearAlbumBg();
   lsSet(MIRROR_KEY, '0');
 }
