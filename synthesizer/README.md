@@ -1,6 +1,6 @@
 # synthesizer
 
-> 🧸 **old toy** —— 2021 年前后 MATLAB 课程的结课作业，**不再维护**，仅作存档。
+> 🧸 **old toy** —— 2025 年前后 MATLAB 课程的结课作业，**不再维护**，仅作存档。
 > Archived coursework. Not maintained. Kept for the write-up, not the code.
 
 基于 FM 合成原理、用 MATLAB 实现的声音合成器，默认 4 个振荡器。
