@@ -51,7 +51,22 @@ npm install -g neteasecli      # Windows / macOS / 原生 Chrome
 neteasecli auth login          # 需先在浏览器登录 music.163.com
 ```
 
-Linux + Chromium 需要两处绕法（keyring 键名是 `application=chromium`；`auth login --profile` 会被全局 `--profile` 吃掉），完整脚本见 [`../netease-recommend/AGENTS.md`](../netease-recommend/AGENTS.md#3-authentication)。手动兜底永远可用。
+Linux + Chromium 有两处绕法：`neteasecli` 只找 `~/.config/google-chrome`（不看 `~/.config/chromium`），且 keyring 键名是 `application=chromium`；另外 `auth login --profile <path>` 会被全局 `--profile` 吃掉。绕过去：
+
+```bash
+npm install -g neteasecli
+PKG="$(npm root -g)/neteasecli"
+SECRET="$(secret-tool lookup application chromium)"   # Arch: libsecret
+
+SWEET_COOKIE_CHROME_SAFE_STORAGE_PASSWORD="$SECRET" \
+node --input-type=module -e "
+import { getAuthManager } from '$PKG/dist/auth/manager.js';
+await getAuthManager().importFromBrowser(process.env.HOME + '/.config/chromium/Default');
+console.log('imported');
+"
+```
+
+`secret-tool lookup application chromium` 应返回 24 字符 base64；为空说明 keyring 锁着或用了别的 password-store。此时用上面的手动方案 —— 永远可用，且不依赖任何 npm 包。
 
 ## 命令
 
