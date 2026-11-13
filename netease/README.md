@@ -29,6 +29,16 @@ ln -s "$PWD/toybox/netease" ~/.agents/skills/netease
 
 不需要 skill 机制的 agent，直接读 [`SKILL.md`](./SKILL.md) 当说明书，或把 `scripts/` 拷到任何地方调用。
 
+不想留一份常驻 clone？也可以整目录拷过去（独立运行，不依赖 git）：
+
+```bash
+git clone --depth 1 https://github.com/77-223255/toybox.git /tmp/toybox
+cp -r /tmp/toybox/netease ~/.pi/agent/skills/netease
+rm -rf /tmp/toybox
+```
+
+更新就是把上面那三行再跑一次（`cp -r` 覆盖）。
+
 ## 认证
 
 脚本按顺序找 cookie：
