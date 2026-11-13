@@ -1,14 +1,17 @@
 // Hush — Netease Content Script
 //
-// 由 popup 的单个 ON/OFF 开关统一控制，做五类事：
-//   1) 隐藏用不到的 UI（侧栏栏目 / logo / 右上角账户区 / 评论 / 收藏 / VIP）
+// 由 popup 的单个 ON/OFF 开关统一控制，做六类事：
+//   1) 隐藏用不到的 UI（侧栏栏目 / logo / 右上角账户区 / 评论 / 收藏 / VIP /
+//      进度条上的「高潮」小圆点）
 //   2) 换肤：站点自带 design token 主题系统（80 个 token，场景 dark 等）。
 //      页面加载前把 localStorage.currentTheme 设成 "dark"（无闪白），
 //      再用 <style>!important 把 token 盖成 Apple Music 深色（色板见下面的常量）。
 //      全屏页会在容器上重定义整套 token，故 albumTokenResetCss() 再写一份到容器上。
 //   3) 侧栏三个栏目改英文名、去图标（JS；SPA 重渲染后由 MutationObserver 重跑）
-//   4) 全屏播放页：只留居中的静止封面；背景用「当前封面模糊放大」（Apple Music 式）
-//   5) 键盘控制：↓ 播放 / 暂停，← 上一首，→ 下一首（底栏与全屏底栏通用）
+//   4) 全屏播放页：只留居中的静止封面；背景用「当前封面模糊放大」（Apple Music 式）；
+//      左上角「退出全屏纯享」按钮直接隐藏
+//   5) 键盘控制：↓ 播放 / 暂停，← 上一首，→ 下一首（底栏与全屏底栏通用）；
+//      全屏时 Esc 退出全屏（代点那个被隐藏的按钮）
 //
 // 约定：不动会随构建变化的哈希类名，只用稳定 ID / 未混淆语义类名 / 前缀属性选择器。
 
@@ -238,6 +241,13 @@ const SIDEBAR_CSS = `
   html body :is([class*="DefaultBarWrapper"], [class*="VinylPageBarWrapper"]) :is([class*="miniBarIcon"], [class*="MiniBarMiddleIcon"]):hover {
     color: ${ACCENT_HEX} !important;
     fill: ${ACCENT_HEX} !important;
+  }
+
+  /* ── 进度条上的「高潮」标记点：普通底栏（slider-default）与全屏底栏（slider-vinyl）
+     各有一个，都在 .dots 容器里的 .chorus-mark（ChorusMarkDot_*），一起隐藏。 ── */
+  html body .dots .chorus-mark,
+  html body [class*="ChorusMark"] {
+    display: none !important;
   }
 
   /* ── 进度条 / 音量条：轨道浅灰、已播强调色、滑块白 ── */
@@ -471,21 +481,12 @@ const SIDEBAR_CSS = `
     visibility: visible !important;
   }
 
-  /* ── 全屏顶栏（左上角「退出全屏纯享」按钮）：默认隐藏，鼠标靠近视口顶部时滑出 ──
+  /* ── 全屏顶栏（左上角「退出全屏纯享」按钮）：直接隐藏，不再随鼠标滑出 ──
      .page-header 是 VinylPageContainer 里包住顶部 Header 的绝对定位层（top:0, h:72px），
-     非全屏时 VinylPageContainer 不可见，所以用 .hush-vinyl-active 限定。
-     .hush-vinyl-topbar-show 由 mousemove 在鼠标进入视口顶部 ~120px 时加（见 startVinylBarWatcher）。 */
+     里面只有那个退出按钮（.close），整条隐藏即可。用 .hush-vinyl-active 限定，非全屏不受影响。
+     退出全屏：底部控制条里的全屏按钮 / Esc 都能用，方向键照旧。 */
   html.hush-vinyl-active .page-header {
-    transition: opacity 0.28s ease, transform 0.28s ease !important;
-  }
-  html.hush-vinyl-active:not(.hush-vinyl-topbar-show) .page-header {
-    opacity: 0 !important;
-    transform: translateY(-12px) !important;
-    pointer-events: none !important;
-  }
-  /* .left 自带 pointer-events:all，父级 none 拦不住命中，隐藏时把整棵子树都关掉 */
-  html.hush-vinyl-active:not(.hush-vinyl-topbar-show) .page-header * {
-    pointer-events: none !important;
+    display: none !important;
   }
 `;
 
@@ -1131,9 +1132,7 @@ function stopVinylObserver() {
 // （具体隐藏/过渡规则在 SIDEBAR_CSS，这里只负责切 <html> 上的 class）
 // ─────────────────────────────────────────────────────────────
 const VINYL_BAR_CLASS = 'hush-vinyl-bar-show';
-const VINYL_TOPBAR_CLASS = 'hush-vinyl-topbar-show';
 const VINYL_BAR_ZONE = 120; // px：视口底部多高算「靠近」
-const VINYL_TOP_ZONE = 120; // px：视口顶部多高算「靠近」（唤醒左上角退出按钮）
 let vinylBarMoveHandler = null;
 let vinylBarRaf = 0;
 
@@ -1151,7 +1150,6 @@ function hideVinylBar() {
     vinylBarRaf = 0;
   }
   document.documentElement.classList.remove(VINYL_BAR_CLASS);
-  document.documentElement.classList.remove(VINYL_TOPBAR_CLASS);
 }
 
 function startVinylBarWatcher() {
@@ -1162,9 +1160,7 @@ function startVinylBarWatcher() {
     vinylBarRaf = requestAnimationFrame(() => {
       vinylBarRaf = 0;
       const show = e.clientY >= window.innerHeight - VINYL_BAR_ZONE;
-      const showTop = e.clientY <= VINYL_TOP_ZONE;
       document.documentElement.classList.toggle(VINYL_BAR_CLASS, show);
-      document.documentElement.classList.toggle(VINYL_TOPBAR_CLASS, showTop);
     });
   };
   document.addEventListener('mousemove', vinylBarMoveHandler, { passive: true });
@@ -1183,7 +1179,31 @@ function stopVinylBarWatcher() {
 }
 
 // ─────────────────────────────────────────────────────────────
-// 键盘控制：↓ 播放 / 暂停，← 上一首，→ 下一首
+// 退出全屏：左上角「退出全屏纯享」按钮在 CSS 里已隐藏（用户不要），
+// 但站点没有其它纯鼠标入口（Esc 站点自己也不处理），所以补一个 Esc：
+// 全屏时按 Esc = 点那个隐藏的站点按钮；找不到按钮就点底栏小封面（站点自带的切换入口）。
+// 按钮只是 display:none，仍在 DOM 里，程序化 click 能触发站点自己的处理。
+// ─────────────────────────────────────────────────────────────
+const EXIT_BUTTON_SELECTOR = '.page-header .close button, [title="退出全屏纯享"]';
+const MINI_COVER_SELECTOR = '[class*="vinylImgCls"]';
+
+function exitVinylFullscreen() {
+  if (!document.documentElement.classList.contains('hush-vinyl-active')) return false;
+  const btn = document.querySelector(EXIT_BUTTON_SELECTOR);
+  if (btn) {
+    btn.click();
+    return true;
+  }
+  const cover = document.querySelector(MINI_COVER_SELECTOR);
+  if (cover) {
+    cover.click();
+    return true;
+  }
+  return false;
+}
+
+// ─────────────────────────────────────────────────────────────
+// 键盘控制：↓ 播放 / 暂停，← 上一首，→ 下一首（全屏时 Esc 退出全屏）
 // 底栏与全屏（纯享）底栏各有一套控制键，用的都是稳定标识，不是哈希类名：
 //   播放/暂停：button.play-pause-btn（站点自己的 id 是 #btn_pc_minibar_play，两套底栏共用）
 //   上一首 / 下一首：图标库类名 .cmd-icon-pre / .cmd-icon-next
@@ -1194,6 +1214,7 @@ const PLAYER_KEYS = {
   ArrowDown: 'playPause',
   ArrowLeft: 'prev',
   ArrowRight: 'next',
+  Escape: 'exitVinyl',
 };
 const PLAY_PAUSE_SELECTOR = 'button.play-pause-btn, [id="btn_pc_minibar_play"]';
 const PREV_SELECTOR = '[class*="DefaultBarWrapper"] .cmd-icon-pre, [class*="VinylPageBarWrapper"] .cmd-icon-pre';
@@ -1224,6 +1245,7 @@ function pickPlayerButton(selector) {
 }
 
 function triggerPlayerAction(action) {
+  if (action === 'exitVinyl') return exitVinylFullscreen();
   let selector = NEXT_SELECTOR;
   if (action === 'playPause') selector = PLAY_PAUSE_SELECTOR;
   else if (action === 'prev') selector = PREV_SELECTOR;

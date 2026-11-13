@@ -1,17 +1,14 @@
 // Hush — Popup Script
 //
-// 三个无文字磁贴，撑满 popup、中间 1px 细线分割，靠颜色区分功能：
+// 两个无文字磁贴，撑满 popup、中间 1px 细线分割，靠颜色区分功能：
 //   红色 = 网易云音乐（隐藏侧栏 + Apple Music 深色主题 + 方向键控制播放）
-//   蓝色 = X（隐藏「为你推荐」+ 白天 9:00–21:00 封锁）
 //   橙色 = Hacker News（深色主题 + 调大字号）
-// 三个开关各自独立存储，互不影响。
+// 两个开关各自独立存储，互不影响。
 
 const NETEASE_KEY = 'netease-hider-enabled';
-const X_KEY = 'x-hider-enabled';
 const HN_KEY = 'hn-hider-enabled';
 
 const neteaseBtn = document.getElementById('neteaseBtn');
-const xBtn = document.getElementById('xBtn');
 const hnBtn = document.getElementById('hnBtn');
 
 function getConfig(key) {
@@ -56,18 +53,6 @@ async function initNetease() {
   });
 }
 
-async function initX() {
-  let enabled = (await getConfig(X_KEY)).enabled;
-  updateUI(xBtn, enabled);
-
-  xBtn.addEventListener('click', async () => {
-    enabled = !enabled;
-    await saveConfig(X_KEY, { enabled });
-    await sendToActiveTab(['x.com', 'twitter.com'], { action: 'updateXConfig', enabled });
-    updateUI(xBtn, enabled);
-  });
-}
-
 async function initHn() {
   let enabled = (await getConfig(HN_KEY)).enabled;
   updateUI(hnBtn, enabled);
@@ -82,6 +67,5 @@ async function initHn() {
 
 document.addEventListener('DOMContentLoaded', () => {
   initNetease();
-  initX();
   initHn();
 });

@@ -2,37 +2,42 @@
 
 ## 背景
 
-这是一个仅个人使用的 Chrome 扩展（Manifest V3），目前管三个互不相干的站点，
-靠 popup 里三个不同颜色的磁贴分别开关：
+这是一个仅个人使用的 Chrome 扩展（Manifest V3），目前管两个互不相干的站点，
+靠 popup 里两个不同颜色的磁贴分别开关：
 
 1. **网易云音乐** Linux WebPlayer（`https://music.163.com/st/webplayer`）：
    隐藏部分 UI + **Apple Music 深色主题** + 全屏播放页精简 + **方向键控制播放**，
    逻辑全在 `src/netease.js`。
-2. **X / Twitter**（`x.com` / `twitter.com`）：隐藏首页「为你推荐 / For you」标签，
-   并在**本地时间 09:00–21:00** 之间「白昼封锁」——整页清空、全屏只留标语，逻辑全在 `src/x.js`。
-3. **Hacker News**（`news.ycombinator.com`）：深色主题 + 整体调大字号（含评论），
+2. **Hacker News**（`news.ycombinator.com`）：深色主题 + 整体调大字号（含评论），
    保留品牌橙，逻辑全在 `src/hn.js`。
 
 原来还有第 4 个磁贴（金 = Codeforces 复古暖色深色主题），用户要求**去掉**，
 `src/codeforces.js`、manifest 条目、popup 金色磁贴与 `cf-hider-enabled` key 都已删；
 不要再加回来（用户还要用 Codeforces，只是不要这个主题了）。
 
+原来还有蓝色磁贴（X / Twitter：隐藏「为你推荐」+ 白天 9:00–21:00 封锁），
+用户要求**全部去掉**：`src/x.js`、`tools/diagnose-x.js`、manifest 条目、
+popup 蓝色磁贴与 `x-hider-enabled` key 都已删；不要再加回来，也不要恢复任何 X 相关注入。
+
 网易云网站是 React SPA，登录后才有完整侧边栏；
 **静态 curl / headless dump-dom 拿不到侧边栏 DOM**（未登录时只返回空壳），
 不要基于静态抓取写选择器。
+
+调试网易云时的可行做法（已验证）：用**独立 user-data-dir 拷贝一份已登录的 chromium profile**
+（`Local State` + `Default/{Cookies,Preferences,Local Storage,Session Storage}`），
+带上 `--password-store=gnome-libsecret --remote-debugging-port=NNNN` 启一个 headless 实例，
+再用 CDP（`Runtime.evaluate`）读真实 DOM / 跑脚本；不要动用户正在用的那个实例。
 
 ## 文件结构
 
 ```
 src/                     扩展源码（chromium 打包目录）
 src/netease.js           网易云：隐藏 / 换肤 / 全屏精简 / 方向键控制（网易云逻辑全在此）
-src/x.js                 X：隐藏「为你推荐 / For you」标签 + 白天 9:00–21:00 全屏封锁
 src/hn.js                Hacker News：注入深色主题 + 调大字号（保留品牌橙）
-src/popup.html / popup.js  弹窗：上下三个无文字 ON/OFF 磁贴，撑满 popup、中间 1px 细线分割
-                         （红=网易云，蓝=X，橙=HN）；加站点就往 body 里追加一个 .tile
-src/manifest.json        MV3（version 6.0.0）；三个 content_scripts：
-                         music.163.com → netease.js，
-                         x.com / twitter.com → x.js，news.ycombinator.com → hn.js；
+src/popup.html / popup.js  弹窗：上下两个无文字 ON/OFF 磁贴，撑满 popup、中间 1px 细线分割
+                         （红=网易云，橙=HN）；加站点就往 body 里追加一个 .tile
+src/manifest.json        MV3（version 6.1.0）；两个 content_scripts：
+                         music.163.com → netease.js，news.ycombinator.com → hn.js；
                          无 web_accessible_resources（v5.0.0 已随 Systems Approach 移出而删掉）；
                          action 图标用 icons/icon48.png
 src/icons/*              图标（16/48/128 + svg）
@@ -43,7 +48,6 @@ tools/diagnose.js        网易云失灵诊断脚本（在 Console 粘贴运行�
 tools/diagnose-netease.js 网易云完整诊断（可对比插件开 / 关两种 DOM，输出自动复制）
 tools/audit-selectors.js 网易云选择器命中率审计（四种页面各跑一次）
 tools/inspect-fullscreen.js 全屏播放页状态探针（封面 / 背景 / 类名尺寸）
-tools/diagnose-x.js      X 失灵诊断脚本
 tools/README.md          上面几个诊断脚本的用法说明
 ```
 
@@ -143,46 +147,6 @@ rsvg-convert -w 128 -h 128 icon.svg -o icon128.png
 `SURFACE_OVERRIDES` / `ACCENT_OVERRIDES` 都引用它们），以及 `popup.html` 里的
 `background` / `.tile.on` 渐变。
 
-## X（Twitter）「为你推荐」隐藏（`src/x.js`）
-
-- 站点：`*://x.com/*`、`*://twitter.com/*`。
-- 目标：首页时间线顶部的 tablist 有两个 tab ——「为你推荐 / For you」和
-  「正在关注 / Following」。只隐藏前者，保留后者。
-- 为什么不用纯 CSS：标签文字写在 DOM 文本里，CSS 选不到文字。所以用 JS 扫描
-  `[role="tab"]`，给匹配到的元素打上 `data-x-hider-foryou="1"`，再由注入的
-  `[data-x-hider-foryou="1"]{display:none!important}` 隐藏。
-- 选择器：X 类名全是哈希（`r-1habvwh`）不可靠；用稳定的无障碍属性
-  `[role="tab"]` / `[role="tablist"]`。文字匹配用中英文正则
-  `/^(为你推荐|for you)$/i`，只处理同时含有「正在关注 / Following」的 tablist
-  （即首页时间线），不动探索页等其它也带「为你推荐」的 tablist。
-- X 的 tablist 结构是 `div[role="tablist"] > div(容器) > [role="tab"]`，两个容器
-  各 `flex-grow:1`（各占一半）。所以只把 tab 隐藏的话，「正在关注」会留在右半边；
-  注入的 CSS 会把被隐藏那半的容器压成 0（`flex-basis:0; flex-grow:0; width:0`），
-  剩下的容器撑满整行、内容居中。改这段 CSS 时别把居中改坏。
-- X 是 SPA：`MutationObserver` 监听 `documentElement`（childList + subtree），
-  100ms 节流后重扫；另有 2s 兜底 interval。**只在开启时才挂**（`startWatching`），
-  关闭时 `stopWatching()` 把它们全部拆掉，关闭状态下不参与 X 的 DOM 变动。
-- **只隐藏标签本身，不做自动跳转 / 自动点击**（用户明确不要）。所以刷新后时间线若仍
-  停在「为你推荐」，点一下「正在关注」即可；不要“好心”加自动切换。
-- 存储 key = `x-hider-enabled`；popup 蓝色按钮发消息
-  `{ action: 'updateXConfig', enabled }`。
-
-## X 白昼封锁（`src/x.js`，与「为你推荐」共用蓝色开关）
-
-- 本地时间 **09:00–21:00**（`BLOCK_START_HOUR=9` / `BLOCK_END_HOUR=21`，`getHours()` 判断，
-  9:00 整进入、21:00 整解除）之间，给 `<html>` 打上 `data-x-hush-block="1"`：
-  - 注入 CSS 隐藏 `body > *:not(#x-hush-block)`（含 `#react-root`），整页清空、禁止滚动；
-  - 一个全屏遮罩 `#x-hush-block`（`position:fixed; inset:0; z-index:2147483647`）只留一句标语
-    （「专注时间 / 9:00 – 21:00 不看 X / Hush · 21:00 后再见」），改标语改 `buildOverlay()` 里的 innerHTML。
-- **遮罩是 `<body>` 的直接子元素**，所以隐藏规则用 `:not(#x-hush-block)` 把它排除；
-  不要改成 `body{display:none}`（那样遮罩也没了）。顶栏橙色与这里无关。
-- `document_start` 时 `body` 可能还不存在：`ensureOverlay()` 先挂 `MutationObserver` 等 body 出现
-  再 `buildOverlay()`。同步预判用同源 `localStorage['x-hider-block-mirror']`（`'1'`/`'0'`）
-  在脚本执行前就设好 `data-x-hush-block`，避免 body 渲染后才遮造成闪一下。
-- 进入 / 离开时段靠 `setInterval(15s)` 的 `syncBlock()` 复查；关闭开关时 `stopBlockClock()` 停掉，
-  并强制 `syncBlock()` 解除封锁 + 写镜像 `'0'`。
-- **不要**把封锁做成独立开关或与「为你推荐」拆成两个按钮（用户要的就是蓝色那一个）。
-
 ## Hacker News 深色 + 大字号（`src/hn.js`）
 
 - 站点：`*://news.ycombinator.com/*`；存储 key = `hn-hider-enabled`；
@@ -227,6 +191,11 @@ rsvg-convert -w 128 -h 128 icon.svg -o icon128.png
   `BasePlayButtonWrapper`、`TrianglePlayButtonWrapper`、`cmd-progress-track*`、`Comment`
   （大写）；全屏歌词类已改名，直接 `VinylPageLayoutContainer > :is(.display,.side,.center)`。
 - **不能用 `TreeWalker`**（曾把页面卡死）；只用 `querySelectorAll` + 幂等写入。
+- **进度条上的「高潮」标记点已隐藏**（用户要求）：站点在 `StyledSliderContainer` 里有一个
+  `.dots` 容器，里面是 `.chorus-mark`（`ChorusMarkDot_c1xsqzfc`）；普通底栏
+  （`slider-default`，即“外部页面”的底栏）与全屏底栏（`slider-vinyl`）各一个。
+  `SIDEBAR_CSS` 里用 `html body .dots .chorus-mark, html body [class*="ChorusMark"]{display:none}`
+  一并隐藏，**别把 `.dots` / 整个滑块隐藏**（那会把进度条本体也藏掉）。
 
 **全屏封面**（常量在 `netease.js` 顶部，CSS 在 `SIDEBAR_CSS`）：
 - 歌曲全屏封面 `VinylCoverContainer`、播客（声音）全屏封面 `VoiceCoverContainer`
@@ -259,16 +228,21 @@ rsvg-convert -w 128 -h 128 icon.svg -o icon128.png
   `translateY(0)`（视口正中）；`html.hush-vinyl-active:not(.hush-vinyl-bar-show)` 选择器
   权重高于基础规则，两者都 `!important`。
 - 站点自身空闲可能把整条底栏 `display:none`；用 `opacity/visibility:visible` 强制保留。
-- **全屏顶栏（左上角退出按钮）自动隐藏**：`VinylPageContainer` 内 `.page-header`
-  （绝对定位 top:0、h:72px）包住顶部 `Header`（`Container_c1m2d5ze`，退出按钮
-  `title="退出全屏纯享"`）。默认 `opacity:0 + translateY(-12px)`，鼠标进入视口顶部
-  ~120px 时加第三个 `<html>` 类 `hush-vinyl-topbar-show` 滑出；`.left` 自带
-  `pointer-events:all`，隐藏时须对 `.page-header *` 一并 `pointer-events:none`，否则仍可点到。
-- 开关关掉时 `stopVinylBarWatcher()` / `stopVinylObserver()` 移除监听与三个 class。
+- **全屏顶栏（左上角「退出全屏纯享」按钮）直接隐藏**：`VinylPageContainer` 内 `.page-header`
+  （绝对定位 top:0、h:72px）里面**只有**那个退出按钮（`.close > button`，图标
+  `cmd-icon-unfold`），所以直接用 `html.hush-vinyl-active .page-header{display:none}` 整条藏掉，
+  不再随鼠标滑出（旧的 `hush-vinyl-topbar-show` / `VINYL_TOP_ZONE` / 视口顶部唤醒逻辑已删）。
+- **全屏时要能退得出来**（用户只要求隐藏按钮，不是把入口删干净）：站点自己**不处理 Esc**，
+  底栏也没有其它退出按钮，所以 JS 里补了 `exitVinylFullscreen()`：全屏时按 Esc → 程序化点那个
+  隐藏的站点按钮（`.page-header .close button` / `[title="退出全屏纯享"]`，`display:none`
+  不影响 `click()` 触发 React 监听）；拿不到按钮就退而点底栏小封面
+  `[class*="vinylImgCls"]`（站点自带的切换入口）。别当成“多余”删了。
+- 开关关掉时 `stopVinylBarWatcher()` / `stopVinylObserver()` 移除监听与 `<html>` 上的 class。
 
 ## 网易云：键盘控制（`src/netease.js`）
 
-- 快捷键：**↓ 播放 / 暂停**，**← 上一首**，**→ 下一首**（不处理带修饰键的方向键）。
+- 快捷键：**↓ 播放 / 暂停**，**← 上一首**，**→ 下一首**，全屏时 **Esc 退出全屏**
+  （不处理带修饰键的方向键）。
 - 不用站点内部 store（content script 在隔离世界访问不到），而是**点站点自己的控制按钮**；
   用的都是稳定标识，不是哈希类名：
   - 播放/暂停：`button.play-pause-btn`（站点自己的 id 是 `#btn_pc_minibar_play`；
@@ -284,6 +258,8 @@ rsvg-convert -w 128 -h 128 icon.svg -o icon128.png
   （搜索框里方向键要能移动光标）。
 - 与网易云开关同一个开关：`enable()` 里 `startKeyboard()`，`disable()` 里 `stopKeyboard()`；
   找不到控制按钮（没播歌 / 底栏没挂载）时什么都不做，也不 `preventDefault`。
+- `PLAYER_KEYS` 里 `Escape → 'exitVinyl'`，由 `triggerPlayerAction()` 转给
+  `exitVinylFullscreen()`；不在全屏态时返回 `false`，Esc 交给站点（关菜单之类）。
 
 ## 插件失灵时的工作流
 
@@ -296,13 +272,6 @@ rsvg-convert -w 128 -h 128 icon.svg -o icon128.png
 4. 升 `src/manifest.json` 的 version（如 3.0.0 → 3.1.0）。
 5. 重新打包（见下），覆盖根目录 `hush.crx`，git 提交并推送。
 6. 提醒用户：刷新页面即可（同扩展 ID，拖入新 CRX 直接覆盖，不用先删旧版）。
-
-X：
-
-1. 让用户在 `https://x.com/home` 的 F12 → Console 运行 `tools/diagnose-x.js`，
-   把输出贴回来。
-2. 确认 `[role="tab"]` /「为你推荐」文字是否还在。
-3. 改 `src/x.js` 顶部的 `FOR_YOU_RE` / `FOLLOWING_RE`，必要时放宽扫描范围。
 
 ## 打包命令
 
@@ -322,7 +291,9 @@ rm -f hush.zip && (cd src && zip -qr ../hush.zip .)
 - 必须用 `--pack-extension-key` 指定签名私钥（`$HUSH_KEY` 或
   `~/.local/share/hush/hush.pem`；仓库里的 `keys/` 已被 .gitignore），
   否则每次生成新密钥 → 扩展 ID 变化 → 用户得删旧重装。
-  当前扩展 ID：`mdldpbdafiofeclcekinhcjgfhcnelcg`。
+  当前扩展 ID：`kejceeipjofokabmkjplnnbfglglbceg`（v6.1.0 起；旧的
+  `mdldpbdafiofeclcekinhcjgfhcnelcg` 与它的私钥一起丢了，用户已按要求重装）。
+  `pack.sh` 里的 `EXPECTED_ID` 必须与私钥一致，换私钥就同步改它 + README 里的 ID。
   验证方式：解析 CRX3 头里 `sha256_with_rsa.public_key`，其 SHA256 前 16 字节按
   `a`+nibble 映射即得 ID；新包与旧包应一致。
 - 注意 `src/` 目录内不要残留 .pem 文件，否则报"包含密钥文件"错误。
@@ -332,14 +303,13 @@ rm -f hush.zip && (cd src && zip -qr ../hush.zip .)
 ## 约束
 
 - 保持极简：popup 就是垂直堆叠的无文字 ON/OFF 磁贴，撑满整个 popup、相邻磁贴间 1px 细线分割，靠颜色区分功能；加新站点时追加一个 .tile 即可
-  （红=网易云，蓝=X，橙=HN），别加文字、别加复选框列表；按钮里的 SVG 图标只是标识，不算文字。
-- 状态存储：`chrome.storage.sync`，三个独立 key，格式都是 `{ enabled: true|false }`：
+  （红=网易云，橙=HN），别加文字、别加复选框列表；按钮里的 SVG 图标只是标识，不算文字。
+- 状态存储：`chrome.storage.sync`，两个独立 key，格式都是 `{ enabled: true|false }`：
   - 网易云：`netease-hider-enabled`（深色主题 + 全屏精简 + 方向键控制由同一个开关统一控制，
     不要单独加开关）；
-  - X：`x-hider-enabled`（「隐藏为你推荐」与「白天 9:00–21:00 封锁」共用它）；
   - Hacker News：`hn-hider-enabled`。
-- 只管这三个站点：**不要再往这里加 Systems Approach 或任何在线书 / 阅读器功能**，那些在
+- 只管这两个站点：**不要再往这里加 Systems Approach 或任何在线书 / 阅读器功能**，那些在
   `~/Projects/learn`（Learn 扩展，扩展 ID 不同、存储 key 也不同）。
-- 不做自动跳转 / 模拟点击（用户明确不要，别加回来）。X 那边也只隐藏「为你推荐」标签，
-  不要自动切到「正在关注」。方向键控制是用户明确要的例外，但同样只点播放控制键，不做别的。
+- 不做自动跳转 / 模拟点击（用户明确不要，别加回来）。方向键控制是用户明确要的例外，
+  但同样只点播放控制键，不做别的；Esc 退出全屏是另一个例外（只点那个被隐藏的退出按钮）。
 - 不要用 TreeWalker 全页遍历文本节点（曾把页面卡死）。

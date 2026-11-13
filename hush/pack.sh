@@ -4,13 +4,13 @@
 # 用法：./pack.sh
 #   1) 用签名私钥打包 src/ 成 hush.crx（扩展 ID 保持不变）
 #      私钥不入库：从 $HUSH_KEY 或 ~/.local/share/hush/hush.pem 读取
-#   2) 校验扩展 ID == mdldpbdafiofeclcekinhcjgfhcnelcg
+#   2) 校验扩展 ID == kejceeipjofokabmkjplnnbfglglbceg
 #   3) 顺带生成 hush.zip（“加载已解压”备用）
 set -euo pipefail
 cd "$(dirname "$0")"
 
 SRC="src"
-EXPECTED_ID="mdldpbdafiofeclcekinhcjgfhcnelcg"
+EXPECTED_ID="kejceeipjofokabmkjplnnbfglglbceg"
 # 签名私钥不入库：公开仓库里泄露 = 别人能用同一扩展 ID 签名。
 # 查找顺序：$HUSH_KEY → ./keys/hush.pem → ~/.local/share/hush/hush.pem
 KEY=""
