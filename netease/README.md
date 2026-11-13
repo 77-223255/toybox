@@ -104,6 +104,7 @@ node ncm-cli.mjs add <playlistId> --file ids.json
 - `cloudsearch` 对「歌手 + 日文专辑名」的长 query 常给 0 条，脚本自动回落 `/search/get`；仍为 0 就拆短 query（`はっぴいえんど` → `Happy End`）
 - `/album` 不返回曲目，必须用 `/v1/album`
 - 单次 `playlist/manipulate/tracks` 上限约 200 首，脚本自动分批
+- 追加的曲目会插到歌单**最前面**（逐首插到第 1 位），所以一次 `add` 一批 ids 出来是**倒序** —— 要正序就先 `clear` 再反序 `add`
 - 接口有节流，默认请求间隔 180ms（`NCM_MIN_INTERVAL_MS`）
 - 不提供删除歌单接口（避免误删）
 
