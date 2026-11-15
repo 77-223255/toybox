@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Hush",
+  "version": "6.2.1",
+  "description": "Hush — quiet the noise: declutter the Netease Music WebPlayer with an Apple Music dark theme and arrow-key playback control, and give Hacker News a dark theme with larger type.",
+  "permissions": ["activeTab", "storage"],
+  "content_scripts": [
+    {
+      "matches": ["*://music.163.com/*"],
+      "js": ["netease.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["*://news.ycombinator.com/*"],
+      "js": ["hn.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icons/icon48.png"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

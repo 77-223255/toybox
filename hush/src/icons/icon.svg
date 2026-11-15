@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Hush">
+  <!--
+    Hush — 极简 logo：黑色圆角方块 + 彩色混合渐变的几何 H，没有字母之外的东西，
+    也没有站点色点（以后加站点不用改图标）。
+  -->
+  <defs>
+    <!-- 彩色混合：绿 → 青 → 蓝 → 紫 → 粉，斜向扫过 H -->
+    <linearGradient id="accent" x1="30" y1="28" x2="98" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#34d399"/>
+      <stop offset="0.28" stop-color="#22d3ee"/>
+      <stop offset="0.52" stop-color="#60a5fa"/>
+      <stop offset="0.76" stop-color="#a78bfa"/>
+      <stop offset="1" stop-color="#f472b6"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 底板：纯黑，扁平单色 -->
+  <rect x="0" y="0" width="128" height="128" rx="28" fill="#0a0a0b"/>
+  <!-- 极细内描边，仅用于在浅色背景上界定边界 -->
+  <rect x="1.5" y="1.5" width="125" height="125" rx="26.5" fill="none" stroke="#2a2a2e" stroke-width="3"/>
+
+  <!-- 几何 H（两端圆头），填彩色混合渐变 -->
+  <g fill="url(#accent)">
+    <rect x="30" y="28" width="20" height="72" rx="10"/>
+    <rect x="78" y="28" width="20" height="72" rx="10"/>
+    <rect x="30" y="54" width="68" height="20" rx="10"/>
+  </g>
+</svg>

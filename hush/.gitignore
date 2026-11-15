@@ -1,0 +1,10 @@
+# 打包中间产物 / 本地构建产物（不入库）
+/src.crx
+/hush.crx
+/hush.zip
+.DS_Store
+
+# 签名私钥绝不入库 —— 本仓库是公开的。
+# 放在 ~/.local/share/hush/hush.pem，或用 HUSH_KEY 指定路径。
+/keys/
+*.pem
