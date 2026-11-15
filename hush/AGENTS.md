@@ -304,18 +304,9 @@ rm -f hush.zip && (cd src && zip -qr ../hush.zip .)
 - 注意 `src/` 目录内不要残留 .pem 文件，否则报"包含密钥文件"错误。
 - 产物 `src.crx` 出现在 **src/ 的同级**（即 `hush/` 目录里），改名成 `hush.crx` 供本地
   拖拽安装；**crx/zip 不入库**（见 `.gitignore`），只提交源码。
-
-本机（Arch + Chromium）的安装方式：不走手动拖拽，而是用 Chromium 的
-**外部扩展**通道（`~/.config/chromium/External Extensions/<id>.json`，指向
-`~/.local/share/hush/hush.crx`）。每次发包后要做的事：
-
-```bash
-cp hush.crx ~/.local/share/hush/hush.crx            # 覆盖外部安装源
-# 把 json 里的 external_version 改成新版本号
-# 然后重启 chromium 生效（启动时才会检查外部扩展目录）
-```
-
-注意：**这个 json 不能删** —— 删掉后 Chromium 下次启动会把该扩展卸载掉。
+  用户是本机手动装的：把 `hush.crx` 拷到一个好找的地方（例如 `~/Downloads/hush-<版本>.crx`），
+  在 `chrome://extensions` 把文件拖进去就会覆盖升级（同一个扩展 ID）。
+  别再折腾 Chromium 的“外部扩展”通道（`External Extensions/*.json`）—— 试过，不生效。
 
 ## 约束
 
